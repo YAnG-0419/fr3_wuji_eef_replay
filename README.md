@@ -1,6 +1,6 @@
 # FR3 + Wuji EEF replay
 
-回放 `Convert_data/outputs/fr3_wuji/tomato_eef_cam0` 中的一段 episode。
+回放 `/home/user/tomato_eef` 中的一段 episode（可用 `--dataset` 指定其他数据目录）。
 离线完成 cam0 → 各自机械臂底座 → link8 IK → 有界平滑与时间缩放；
 真机端复用 `openpi/deploy/fr3_wuji_runtime` 的控制器、网关、Wuji SDK 和反馈保护。
 无需模型服务、checkpoint、视频或实时相机。
@@ -19,8 +19,8 @@ cd fr3_wuji_eef_replay
 ## 本机直接试用
 
 ```bash
-cd /home/descfly/lpy/fr3_wuji_eef_replay
-export REPLAY_PYTHON=/home/descfly/lpy/openpi/.venv/bin/python
+cd /home/user/lpy/fr3_wuji_eef_replay
+export REPLAY_PYTHON=/home/user/lpy/Pi05/.venv/bin/python
 
 # 生成整段 episode 0 的离线回放包，不连接设备。
 # output 必须不存在；省略它会生成唯一目录。
@@ -45,6 +45,42 @@ bash run.sh plan --dataset /path/to/tomato_eef_cam0 --episode 0
 
 推荐 Python 3.10+。离线只依赖 `numpy/scipy/pyarrow/PyYAML`。
 `run.sh` 默认用当前目录 `.venv/bin/python`，也可以指定 `REPLAY_PYTHON`。
+入口禁用 Python 字节码缓存；复用 Pi05 Python 时无需安装包或修改其代码、环境。
+
+## 当前工作站：Home 后回放一条完整轨迹
+
+当前默认数据目录为 `/home/user/tomato_eef`，部署目录为 `/home/user/lpy/Pi05`，
+右手地址为 `192.168.2.111:50001`，左手仍为 `192.168.1.110:7447`。
+这些是本工作站设置，其他机器应显式覆盖对应参数。
+现场 Home 使用右手端口 `7447` 曾连接超时，显式指定 `50001` 后成功；
+不要仅凭能扫描到设备或 ping 通就认定 SDK 连接可用。
+
+```bash
+# 现场值守：此命令会使双臂双手回到 Home，不修改 Pi05 配置。
+bash /home/user/lpy/Pi05/deploy/fr3_wuji_home/home.sh \
+  --wuji-right-address 192.168.2.111:50001
+
+cd /home/user/lpy/fr3_wuji_eef_replay
+export REPLAY_PYTHON=/home/user/lpy/Pi05/.venv/bin/python
+
+# 离线生成回放包，输出目录必须不存在。
+bash run.sh plan --episode 57 --field action --output outputs/episode57-full
+
+# 不启动设备的配置预检。
+bash run.sh run --plan outputs/episode57-full \
+  --wuji-right-address 192.168.2.111:50001 --hand-control slider
+
+# 现场值守：确认运动区域无障碍后执行，结束时双手释放。
+bash run.sh run --plan outputs/episode57-full \
+  --wuji-right-address 192.168.2.111:50001 --hand-control slider \
+  --execute --supervised-trial
+```
+
+episode 57 的 559 帧 `action` 已通过离线规划及部署配置预检：原时长 18.6s，
+规划回放约 117.67s，平滑后 EEF 采样点最大位置偏差约 3.15mm。
+与本次成功 Home 的末帧反馈比较，双臂首帧最大关节差约 0.099rad；
+episode 75 则约为 0.433rad，超过默认 0.3rad 接近范围，因此选用 episode 57。
+这些历史结果不替代执行时的新鲜反馈检查，也不代表已完成真机 replay 验证。
 
 ## 输出内容与运动语义
 
@@ -137,7 +173,7 @@ bash run.sh run --plan outputs/episode0-full \
 bash run.sh run --plan outputs/my-first90 \
   --openpi "$ROBOT_OPENPI" --reference "$ROBOT_REFERENCE" --sdk-site "$WUJI_SDK_SITE" \
   --left-arm-ip 172.16.0.2 --right-arm-ip 172.16.1.2 \
-  --wuji-left-address 192.168.1.110:7447 --wuji-right-address 192.168.2.111:7447 \
+  --wuji-left-address 192.168.1.110:7447 --wuji-right-address 192.168.2.111:50001 \
   --execute --supervised-trial
 ```
 

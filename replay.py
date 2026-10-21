@@ -14,7 +14,7 @@ import yaml
 from core import Kinematics, decode, digest, joint_names, read_episode, read_limits, save_bundle, trajectory
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_DATA = HERE.parent / "Convert_data/outputs/fr3_wuji/tomato_eef_cam0"
+DEFAULT_DATA = Path("/home/user/tomato_eef")
 
 
 def main(argv=None):
@@ -36,7 +36,7 @@ def main(argv=None):
     plan.add_argument("--output", type=Path)
     run = sub.add_parser("run", help="Use installed openpi device runtime; default only renders launch commands")
     run.add_argument("--plan", type=Path, required=True, help="Directory containing report.json and trajectory.npz")
-    run.add_argument("--openpi", type=Path, default=HERE.parent / "openpi")
+    run.add_argument("--openpi", type=Path, default=Path("/home/user/lpy/Pi05"))
     run.add_argument("--reference", type=Path, default=Path("/home/user/lpy/gello-retarget"))
     run.add_argument("--sdk-site", type=Path, default=Path("/home/user/miniconda3/envs/gello-upper-body-teleop/lib/python3.10/site-packages"))
     run.add_argument("--overlay", type=Path, help="Default: OPENPI/.deployment/oneshot-overlay")
@@ -49,7 +49,7 @@ def main(argv=None):
     run.add_argument("--left-arm-ip", default="172.16.0.2")
     run.add_argument("--right-arm-ip", default="172.16.1.2")
     run.add_argument("--wuji-left-address", default="192.168.1.110:7447")
-    run.add_argument("--wuji-right-address", default="192.168.2.111:7447")
+    run.add_argument("--wuji-right-address", default="192.168.2.111:50001")
     run.add_argument("--hand-control", choices=("strict", "slider"), default="strict")
     run.add_argument("--max-start-delta", type=float, default=0.3, help="Arm first-pose admission bound, radians")
     run.add_argument("--settle-timeout", type=float, default=15)
